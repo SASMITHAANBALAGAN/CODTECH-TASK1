@@ -1,0 +1,351 @@
+#MULTIPLEXAR
+
+module mux(in0,in1,in2,in3,s0,s1,out);
+input in0,in1,in2,in3,s0,s1;
+output out;
+wire s0not;
+wire t0,t1,t2,t3;
+wire s1not;
+assign s0not=~s0;
+assign s1not=~s1;
+assign t0=in0 & s1not & s0not;
+assign t1=in1 &s1not & s0;
+assign t2=in2 &s1 &s0not;
+assign t3=in3 & s1 & s0;
+assign out=t0|t1|t2|t3;
+endmodule 
+
+module muxv();
+reg in0,in1,in2,in3;
+reg s0,s1;
+wire out;
+mux uut(in0,in1,in2,in3,s0,s1,out);
+initial 
+begin
+#20;
+s1=0;s0=0;
+in0=0;in1=1;in2=1;in3=1;
+#100 in0=1;in1=0;in2=0;in3=0;
+#100 s1=1;s0=1;in0=1;in1=0;in2=1;in3=0;
+end
+endmodule
+
+#CARRY LOOK AHEAD ADDER
+module cla(a,b,sum,cout);
+parameter n=4;
+input [n-1:0]a,b;
+output [n-1:0]sum,cout;
+wire [n:0]c;
+wire [n-1:0]g,p;
+assign c[0]=1'b0;
+genvar j;
+generate
+for (j=0;j<n;j=j+1)
+begin:u1
+assign g[j]=a[j]&b[j];
+assign p[j]=a[j]^b[j];
+assign sum[j]=p[j]^c[j];
+assign c[j+1]=g[j]|(p[j]&c[j]);
+end
+endgenerate
+assign cout=c[n];
+endmodule
+
+
+module clax();
+reg [3:0]a,b;
+wire [3:0]sum;
+wire cout;
+cla uut(a,b,sum,cout);
+initial
+begin
+#100 a=4'b0000;b=4'b0001;
+#100 a=4'b1010;b=4'b0101;
+#100 a=4'b1000;b=4'b1001;
+#100 a=4'b1010;b=4'b1101;
+end 
+endmodule
+
+     
+ 
+
+
+#BCD ADDER
+module bcdt(clk,reset,cnt);
+input clk,reset;
+output [3:0] cnt;
+assign a2=cnt[0]&(~cnt[3]);
+assign a3=cnt[0]&cnt[1];
+assign a4=(cnt[0]&cnt[3])|(cnt[0]&cnt[1]&cnt[2]);
+tff tff1(1,1,clk,reset,cnt[0]);
+tff tff2(a2,a2,clk,reset,cnt[1]);
+tff tff3(a3,a3,clk,reset,cnt[2]);
+tff tff4(a4,a4,clk,reset,cnt[3]);
+endmodule
+
+module tff(j,k,clk,reset,q);
+input j,k,clk,reset;
+output reg q;
+always@(posedge clk)
+if(reset) begin
+q<=1'b0;
+end
+else begin
+if (j==0&&k==0)
+q<=q;
+else if (j==0&&k==1)
+q<=0;
+else if (j==1&&k==0)
+q<=1;
+else if (j==1&&k==1)
+q<=~q;
+end
+endmodule
+
+module bcdt_tb();
+reg clk;
+reg reset;
+wire [3:0]cnt;
+bcdt bcdt_cnt(clk,reset,cnt);
+initial
+begin
+clk=1;
+forever #10 clk=~clk;
+end 
+initial
+begin
+reset=1;
+#1 reset=0;
+end
+endmodule
+
+#RIPPLE CARRY ADDER
+module ripplex(a,b,s);
+parameter n=4;
+input [n-1:0]a,b;
+output [n:0]s;
+wire [n:0]carry;
+wire [n-1:0]sum;
+assign carry[0]=1'b0;
+genvar i;
+generate
+     for(i=0;i<n;i=i+1)
+     begin:u1
+        FAA f1(a[i],b[i],carry[i],sum[i],carry[i+1]);
+     end 
+endgenerate
+assign s={carry[n],sum};
+endmodule
+
+module FAA(A,B,cin,sum,cout);
+input A,B,cin;
+output sum,cout;
+assign sum=A^B^cin;
+assign cout=(A&B)|(B&cin)|(A&cin);
+endmodule
+
+module rip();
+reg [3:0]A,B;
+wire [4:0]sum;
+ripplex uut(A,B,sum);
+initial 
+begin
+#100 A=4'b0000;B=4'b0001;
+#100 A=4'b1110;B=4'b0101;
+#100 A=4'b0011;B=4'b1011;
+#100 A=4'b1001;B=4'b1010;
+end 
+endmodule
+
+#NOT gate using Structural modeling
+module not_gate_s(a,y);
+input a;
+output y;
+
+not(y,a);
+                
+endmodule
+module not_gate_tb;
+reg a;
+wire y;
+
+not_gate_s uut(a,y);
+
+initial begin
+a = 0;
+#10
+b = 1;
+#10
+$finish();
+end
+                
+endmodule
+
+#AND gate using Structural modeling
+module and_gate_s(a,b,y);
+input a,b;
+output y;
+
+and(y,a,b);
+                
+endmodule
+module and_gate_tb;
+reg a,b;
+wire y;
+
+and_gate_s uut(a,b,y);
+
+initial begin
+a = 0; b = 0;
+#10
+b = 0; b = 1;
+#10
+a = 1; b = 0;
+#10
+b = 1; b = 1;
+#10
+$finish();
+end
+                
+endmodule
+
+#OR gate using Structural modeling
+module or_gate_s(a,b,y);
+input a,b;
+output y;
+
+or(y,a,b);
+                
+endmodule
+module or_gate_tb;
+reg a,b;
+wire y;
+
+or_gate_s uut(a,b,y);
+
+initial begin
+a = 0; b = 0;
+#10
+b = 0; b = 1;
+#10
+a = 1; b = 0;
+#10
+b = 1; b = 1;
+#10
+$finish();
+end
+                
+endmodule
+
+#NAND gate using Structural modeling
+module nand_gate_s(a,b,y);
+input a,b;
+output y;
+
+nand(y,a,b);
+                
+endmodule
+module nand_gate_tb;
+reg a,b;
+wire y;
+
+nand_gate_s uut(a,b,y);
+
+initial begin
+a = 0; b = 0;
+#10
+b = 0; b = 1;
+#10
+a = 1; b = 0;
+#10
+b = 1; b = 1;
+#10
+$finish();
+end
+                
+endmodule
+
+#NOR gate using Structural modeling
+module nor_gate_s(a,b,y);
+input a,b;
+output y;
+
+nor(y,a,b);
+                
+endmodule
+module nor_gate_tb;
+reg a,b;
+wire y;
+
+nor_gate_s uut(a,b,y);
+
+initial begin
+a = 0; b = 0;
+#10
+b = 0; b = 1;
+#10
+a = 1; b = 0;
+#10
+b = 1; b = 1;
+#10
+$finish();
+end
+                
+endmodule
+
+#EX-OR gate using Structural modeling
+module xor_gate_s(a,b,y);
+input a,b;
+output y;
+
+xor(y,a,b);
+                
+endmodule
+module xor_gate_tb;
+reg a,b;
+wire y;
+
+xor_gate_s uut(a,b,y);
+
+initial begin
+a = 0; b = 0;
+#10
+b = 0; b = 1;
+#10
+a = 1; b = 0;
+#10
+b = 1; b = 1;
+#10
+$finish();
+end
+                
+endmodule
+
+#EX-NOR gate using Structural modeling
+module xnor_gate_s(a,b,y);
+input a,b;
+output y;
+
+xnor(y,a,b);
+                
+endmodule
+module xnor_gate_tb;
+reg a,b;
+wire y;
+
+xnor_gate_s uut(a,b,y);
+
+initial begin
+a = 0; b = 0;
+#10
+b = 0; b = 1;
+#10
+a = 1; b = 0;
+#10
+b = 1; b = 1;
+#10
+$finish();
+end
+                
+endmodule
+
